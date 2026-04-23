@@ -1,0 +1,13 @@
+*.img
+*.iso
+*.dd
+*.raw
+*.qcow2
+*.log
+*.pid
+OVMF_VARS*.fd
+*.sock
+*.tmp
+*.swp
+*.swo
+.DS_Store
