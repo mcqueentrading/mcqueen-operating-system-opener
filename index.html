@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Run USB Drive On QEMU GUI</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+    :root {
+      --bg: #02070b;
+      --panel: rgba(6,16,24,0.78);
+      --panel-strong: rgba(4,17,28,0.88);
+      --line: rgba(0,214,255,0.18);
+      --line-strong: rgba(0,214,255,0.28);
+      --ink: #d6f8ff;
+      --muted: #8cdced;
+      --accent: #00d6ff;
+      --accent-soft: #89eeff;
+      --shadow: 0 24px 80px rgba(0,0,0,0.32);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Outfit", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    #matrix-rain {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      opacity: .95;
+      pointer-events: none;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 1.25rem 0 4rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .glass {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar,
+    .hero,
+    .section {
+      margin-bottom: 1rem;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      border-radius: 999px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: .02em;
+    }
+
+    .brand-mark {
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #89eeff, #00d6ff);
+      box-shadow: 0 0 24px rgba(0,214,255,0.24);
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .65rem;
+    }
+
+    nav a,
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.9rem;
+      padding: .82rem 1.12rem;
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      background: rgba(4,17,28,0.74);
+      transition: .2s ease;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+    }
+
+    nav a:hover,
+    .button:hover {
+      transform: translateY(-2px);
+      border-color: var(--line-strong);
+      box-shadow: 0 14px 32px rgba(0,214,255,0.12);
+    }
+
+    .button.primary {
+      color: #02131b;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--accent-soft), var(--accent));
+      box-shadow: 0 18px 40px rgba(0,214,255,0.22);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 1rem;
+    }
+
+    .hero-main,
+    .hero-side,
+    .section {
+      padding: 1.9rem;
+      background:
+        linear-gradient(180deg, rgba(4,17,28,0.82), rgba(4,17,28,0.74)),
+        radial-gradient(circle at top right, rgba(0,214,255,0.14), transparent 18rem);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 1rem;
+      padding: .48rem .74rem;
+      border-radius: 999px;
+      background: rgba(0,214,255,0.12);
+      color: var(--accent-soft);
+      text-transform: uppercase;
+      font-size: .8rem;
+      letter-spacing: .16em;
+      font-weight: 700;
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 1rem;
+      line-height: 1.03;
+      color: var(--ink);
+      letter-spacing: -0.03em;
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    h1 { font-size: clamp(3rem, 7vw, 5.2rem); }
+    h2 { font-size: clamp(1.6rem, 4vw, 2.2rem); }
+    h3 { font-size: 1.05rem; }
+
+    p, li {
+      margin: 0;
+      line-height: 1.78;
+      color: var(--muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .7rem;
+      margin-top: 1.3rem;
+    }
+
+    .stats,
+    .feature-grid,
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .card,
+    .stat,
+    .note,
+    .terminal {
+      padding: 1.2rem;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .terminal {
+      overflow: auto;
+    }
+
+    .terminal pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.7;
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: .94rem;
+    }
+
+    ul {
+      padding-left: 1.2rem;
+      margin: .7rem 0 0;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 1.2rem;
+    }
+
+    @media (max-width: 860px) {
+      .hero,
+      .stats,
+      .feature-grid,
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix-rain" aria-hidden="true"></canvas>
+
+  <div class="shell">
+    <header class="topbar glass">
+      <a class="brand" href="https://github.com/mcqueentrading/mcqueen-operating-system-opener">
+        <span class="brand-mark"></span>
+        <span>Run USB Drive On QEMU GUI</span>
+      </a>
+      <nav>
+        <a href="https://github.com/mcqueentrading/mcqueen-operating-system-opener">GitHub Repo</a>
+        <a href="https://tonimcqueen.com/project_runusbdriveonqemugui.html">Portfolio Page</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <article class="hero-main glass">
+        <span class="eyebrow">Repository</span>
+        <h1>Run USB Drive On QEMU GUI</h1>
+        <p>A Zenity-based launcher for booting physical USB drives, full raw disk images, and split boot/root image pairs in QEMU without rebuilding the command line by hand every time.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/mcqueentrading/mcqueen-operating-system-opener">Open GitHub Repo</a>
+          <a class="button" href="https://tonimcqueen.com/project_runusbdriveonqemugui.html">Open Portfolio Page</a>
+        </div>
+        <div class="note">
+          <p>This repo version is intentionally focused. It contains the launcher itself, a clean README, a license, and minimal repo scaffolding instead of unrelated rescue tooling.</p>
+        </div>
+      </article>
+
+      <aside class="hero-side glass">
+        <span class="eyebrow">At A Glance</span>
+        <div class="stats">
+          <div class="stat">
+            <h3>Input Modes</h3>
+            <p>Physical disk, full image, or separate boot and root images.</p>
+          </div>
+          <div class="stat">
+            <h3>Disk Interface</h3>
+            <p><code>virtio</code> for speed or <code>ide</code> for compatibility.</p>
+          </div>
+          <div class="stat">
+            <h3>First Run</h3>
+            <p>Prompts for helper paths once, then stores them in user config.</p>
+          </div>
+          <div class="stat">
+            <h3>Desktop Stack</h3>
+            <p>Bash, Zenity, QEMU, OVMF, and <code>virtiofsd</code>.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section glass">
+      <span class="eyebrow">Features</span>
+      <h2>What The Launcher Improves</h2>
+      <div class="feature-grid">
+        <article class="card">
+          <h3>Less Repetitive QEMU Work</h3>
+          <p>The tool compresses a repeated boot workflow into a guided interface instead of forcing the user to reconstruct a long command for each test run.</p>
+        </article>
+        <article class="card">
+          <h3>Cleaner Host Setup</h3>
+          <p>Helper paths are detected when possible, prompted for when missing, and saved to a config file so the user does not need to re-enter them each launch.</p>
+        </article>
+        <article class="card">
+          <h3>Real Disk Support</h3>
+          <p>It can target a physical USB drive directly, which is useful when testing installations or boot workflows against real media instead of only synthetic images.</p>
+        </article>
+        <article class="card">
+          <h3>Image Pair Support</h3>
+          <p>It also handles the awkward case where the user has separate boot and root dumps instead of one clean full-disk image.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section glass">
+      <span class="eyebrow">Quick Start</span>
+      <h2>Getting It Running</h2>
+      <div class="detail-grid">
+        <article class="card">
+          <h3>Arch Package Baseline</h3>
+          <div class="terminal">
+            <pre>sudo pacman -S qemu-desktop qemu-system-x86 edk2-ovmf virtiofsd zenity</pre>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Launch</h3>
+          <div class="terminal">
+            <pre>chmod +x run-usb-drive-on-qemu-gui.sh
+./run-usb-drive-on-qemu-gui.sh</pre>
+          </div>
+        </article>
+      </div>
+      <div class="note">
+        <p>On first run the launcher asks for the shared folder, the <code>virtiofsd</code> path, and the OVMF firmware paths if it cannot confirm them automatically. Those values are saved under <code>~/.config/run-usb-drive-on-qemu-gui/config</code>.</p>
+      </div>
+    </section>
+
+    <section class="section glass">
+      <span class="eyebrow">Repo Scope</span>
+      <h2>What Lives In This Repo</h2>
+      <div class="card">
+        <ul>
+          <li><code>run-usb-drive-on-qemu-gui.sh</code> as the main launcher entrypoint</li>
+          <li><code>README.md</code> with setup and runtime notes</li>
+          <li><code>LICENSE</code> and <code>.gitignore</code> for repo hygiene</li>
+          <li><code>index.html</code> as the GitHub-facing landing page</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section glass">
+      <span class="eyebrow">Navigation</span>
+      <h2>Project Links</h2>
+      <div class="detail-grid">
+        <article class="card">
+          <h3>Source Repository</h3>
+          <p>The public source, README, and launcher live on GitHub.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/mcqueentrading/mcqueen-operating-system-opener">Open Repo</a>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Portfolio Write-Up</h3>
+          <p>The broader project write-up and portfolio framing live on the main Toni McQueen website.</p>
+          <div class="hero-actions">
+            <a class="button" href="https://tonimcqueen.com/project_runusbdriveonqemugui.html">Open Portfolio Page</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="footer glass">
+      <p>GitHub landing page for Run USB Drive On QEMU GUI.</p>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("matrix-rain");
+      const context = canvas.getContext("2d");
+      let animationId = null;
+      let columns = [];
+      let width = 0;
+      let height = 0;
+      const glyphs = "01アイウエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const fontSize = 16;
+
+      function resizeMatrix() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        const count = Math.ceil(width / fontSize);
+        columns = Array.from({ length: count }, () => Math.random() * -height);
+      }
+
+      function drawMatrix() {
+        context.fillStyle = "rgba(1, 8, 12, 0.14)";
+        context.fillRect(0, 0, width, height);
+        context.font = fontSize + "px monospace";
+
+        for (let i = 0; i < columns.length; i += 1) {
+          const glyph = glyphs[Math.floor(Math.random() * glyphs.length)];
+          const x = i * fontSize;
+          const y = columns[i];
+          context.fillStyle = i % 5 === 0 ? "#d7ffff" : "#00d6ff";
+          context.fillText(glyph, x, y);
+          columns[i] = y > height + Math.random() * 120 ? Math.random() * -200 : y + fontSize;
+        }
+
+        animationId = window.requestAnimationFrame(drawMatrix);
+      }
+
+      function startMatrix() {
+        if (animationId) return;
+        resizeMatrix();
+        context.fillStyle = "#02070b";
+        context.fillRect(0, 0, width, height);
+        drawMatrix();
+      }
+
+      window.addEventListener("resize", resizeMatrix);
+      startMatrix();
+    })();
+  </script>
+</body>
+</html>
