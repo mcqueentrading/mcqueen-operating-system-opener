@@ -2,6 +2,12 @@
 
 Zenity-based QEMU launcher for booting USB drives, raw disk images, and split boot/root images with a simpler desktop workflow.
 
+## Project Page
+
+For screenshots, the portfolio write-up, and the public project page:
+
+https://tonimcqueen.com/project_runusbdriveonqemugui.html
+
 ## Overview
 
 This project wraps a repetitive QEMU boot workflow in a guided Bash launcher.
@@ -14,7 +20,7 @@ Instead of rebuilding the same launch command by hand, the script lets you:
 - choose `virtio` or `ide` depending on guest compatibility
 - reuse saved helper paths for `virtiofsd` and OVMF firmware
 
-The goal is not to hide QEMU. The goal is to remove the boring repeated setup while keeping the workflow understandable.
+The goal is not to hide QEMU. The goal is to remove repeated setup work while keeping the launch path understandable.
 
 ## Main File
 
