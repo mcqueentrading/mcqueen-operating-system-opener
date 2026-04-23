@@ -1,35 +1,35 @@
 # Run USB Drive On QEMU GUI
 
-A Zenity-driven Bash launcher for booting physical USB drives, raw disk dumps, or split boot/root images in QEMU with a cleaner desktop workflow.
+Zenity-based QEMU launcher for booting USB drives, raw disk images, and split boot/root images with a simpler desktop workflow.
+
+## Overview
+
+This project wraps a repetitive QEMU boot workflow in a guided Bash launcher.
+
+Instead of rebuilding the same launch command by hand, the script lets you:
+
+- boot a physical USB drive or disk directly in QEMU
+- boot a full raw disk image
+- boot separate boot and root image files
+- choose `virtio` or `ide` depending on guest compatibility
+- reuse saved helper paths for `virtiofsd` and OVMF firmware
+
+The goal is not to hide QEMU. The goal is to remove the boring repeated setup while keeping the workflow understandable.
+
+## Main File
+
+- `run-usb-drive-on-qemu-gui.sh`
 
 ## Quick Start
-
-1. Install the required packages for your distro.
-2. Make the launcher executable.
-3. Run the script.
-4. On first launch, confirm or enter the helper paths it asks for.
 
 ```bash
 chmod +x run-usb-drive-on-qemu-gui.sh
 ./run-usb-drive-on-qemu-gui.sh
 ```
 
-## What It Does
+## Dependencies
 
-- boots a real USB drive or disk directly in QEMU
-- boots a full raw disk image
-- boots separate boot and root image files
-- allows `virtio` or `ide` disk interface selection
-- prepares OVMF UEFI variables automatically
-- starts `virtiofsd` so the guest can access a shared host folder
-- keeps the workflow GUI-driven instead of forcing a long manual QEMU command
-
-## Main Files
-
-- `run-usb-drive-on-qemu-gui.sh`
-  - main launcher
-
-## Runtime Dependencies
+Required at runtime:
 
 - `bash`
 - `zenity`
@@ -38,32 +38,64 @@ chmod +x run-usb-drive-on-qemu-gui.sh
 - `lsblk`
 - `edk2-ovmf`
 
-Example package names on Arch Linux:
+Example package install on Arch Linux:
 
 ```bash
 sudo pacman -S qemu-desktop qemu-system-x86 edk2-ovmf virtiofsd zenity
 ```
 
+## First-Run Setup
+
+On first launch, the script checks:
+
+- shared host folder for `virtiofsd`
+- `virtiofsd` binary path
+- OVMF code firmware path
+- OVMF vars template path
+
+If any of them are missing, it prompts for them and saves the result to:
+
+```text
+~/.config/run-usb-drive-on-qemu-gui/config
+```
+
+Manual path entry uses a real terminal prompt so tab completion works.
+
+## Environment Overrides
+
+You can override the saved config with environment variables:
+
+```text
+RUNUSB_QEMU_SHARE_DIR
+RUNUSB_QEMU_VIRTIOFSD
+RUNUSB_QEMU_OVMF_CODE
+RUNUSB_QEMU_OVMF_VARS_TEMPLATE
+RUNUSB_QEMU_SPICE_PORT
+```
+
+## What The Launcher Does
+
+Typical flow:
+
+1. Validate local tools and helper paths.
+2. Ask whether to boot a physical disk or image-based target.
+3. Ask whether the guest should use `virtio` or `ide`.
+4. Let the user choose the relevant disk or image files.
+5. Prepare OVMF runtime vars.
+6. Start `virtiofsd`.
+7. Launch QEMU with the selected configuration.
+
 ## Notes
 
-- the user should be in the `disk` group to access block devices without switching to root
-- the shared folder defaults to `$HOME/share`
-- firmware and helper paths can be overridden with environment variables
-- on first launch, the script will prompt for missing helper paths and save them in `~/.config/run-usb-drive-on-qemu-gui/config`
-- image and block-device access can be destructive if the wrong target is selected, so verify the disk choice carefully before launching
+- The shared folder defaults to `$HOME/share`.
+- The user should be in the `disk` group for physical block-device access.
+- Selecting the wrong physical disk can be destructive. Verify the target carefully before launch.
 
-## Environment Variables
+## Repository Scope
 
-- `RUNUSB_QEMU_SHARE_DIR`
-  - host folder exported to the guest with `virtiofsd`
-- `RUNUSB_QEMU_VIRTIOFSD`
-  - path to the `virtiofsd` binary
-- `RUNUSB_QEMU_OVMF_CODE`
-  - path to the OVMF code firmware image
-- `RUNUSB_QEMU_OVMF_VARS_TEMPLATE`
-  - path to the OVMF vars template copied before launch
-- `RUNUSB_QEMU_SPICE_PORT`
-  - Spice port, default `5910`
+This repo is intentionally narrow.
+
+It contains the launcher and the minimal repo scaffolding needed to publish it cleanly. It does not try to package QEMU, OVMF, or `virtiofsd`.
 
 ## License
 
