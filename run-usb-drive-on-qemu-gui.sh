@@ -53,10 +53,7 @@ prompt_path() {
     fi
 
     while true; do
-        selected=$(zenity --entry \
-            --title="$title" \
-            --text="$prompt" \
-            --entry-text="$current_value") || exit 1
+        selected=$(prompt_path_in_terminal "$title" "$prompt" "$current_value") || exit 1
 
         if [ -z "$selected" ]; then
             zenity --error --text="This field cannot be empty."
@@ -98,6 +95,110 @@ detect_default_exec() {
         fi
     done
     return 1
+}
+
+get_terminal_launcher() {
+    if command -v kitty &>/dev/null; then
+        printf '%s\n' "kitty"
+        return 0
+    fi
+
+    if command -v foot &>/dev/null; then
+        printf '%s\n' "foot"
+        return 0
+    fi
+
+    if command -v alacritty &>/dev/null; then
+        printf '%s\n' "alacritty"
+        return 0
+    fi
+
+    if command -v wezterm &>/dev/null; then
+        printf '%s\n' "wezterm"
+        return 0
+    fi
+
+    if command -v gnome-terminal &>/dev/null; then
+        printf '%s\n' "gnome-terminal"
+        return 0
+    fi
+
+    if command -v xfce4-terminal &>/dev/null; then
+        printf '%s\n' "xfce4-terminal"
+        return 0
+    fi
+
+    if command -v konsole &>/dev/null; then
+        printf '%s\n' "konsole"
+        return 0
+    fi
+
+    if command -v xterm &>/dev/null; then
+        printf '%s\n' "xterm"
+        return 0
+    fi
+
+    return 1
+}
+
+prompt_path_in_terminal() {
+    local title="$1"
+    local prompt="$2"
+    local current_value="$3"
+    local result_file script_file terminal selected
+
+    result_file="$(mktemp)"
+    script_file="$(mktemp)"
+
+    cat > "$script_file" <<EOF
+#!/bin/bash
+printf '%s\n\n' "$prompt"
+printf 'Tab completion is enabled in this prompt.\n\n'
+read -e -i $(printf '%q' "$current_value") -p "> " selected
+status=\$?
+if [ \$status -eq 0 ] && [ -n "\$selected" ]; then
+    printf '%s' "\$selected" > $(printf '%q' "$result_file")
+fi
+EOF
+    chmod +x "$script_file"
+
+    terminal="$(get_terminal_launcher || true)"
+    if [ -z "$terminal" ]; then
+        rm -f "$script_file" "$result_file"
+        zenity --error --text="No supported terminal emulator was found for manual path entry."
+        return 1
+    fi
+
+    case "$terminal" in
+        kitty|foot|alacritty|konsole|xterm)
+            "$terminal" -e bash "$script_file"
+            ;;
+        wezterm)
+            "$terminal" start -- bash "$script_file"
+            ;;
+        gnome-terminal|xfce4-terminal)
+            "$terminal" -- bash "$script_file"
+            ;;
+        *)
+            rm -f "$script_file" "$result_file"
+            zenity --error --text="Unsupported terminal launcher: $terminal"
+            return 1
+            ;;
+    esac
+
+    if [ -s "$result_file" ]; then
+        selected="$(cat "$result_file")"
+    else
+        selected=""
+    fi
+
+    rm -f "$script_file" "$result_file"
+
+    if [ -z "$selected" ]; then
+        return 1
+    fi
+
+    printf '%s\n' "$selected"
 }
 
 save_config() {
@@ -279,9 +380,10 @@ elif [ "$BOOT_MODE" = "image" ]; then
                 --title="Select Full Disk Image" \
                 --file-filter="Disk Images | *.img *.iso *.dd *.raw *" )
         else
-            BOOT_DISK=$(zenity --entry \
-                --title="Image Path" \
-                --text="Enter full path to image file:")
+            BOOT_DISK=$(prompt_path_in_terminal \
+                "Image Path" \
+                "Enter the full path to the disk image file." \
+                "$HOME/")
         fi
 
         if [ -z "$BOOT_DISK" ] || [ ! -f "$BOOT_DISK" ]; then
@@ -303,9 +405,10 @@ elif [ "$BOOT_MODE" = "image" ]; then
                 --title="Select Boot Partition Image" \
                 --file-filter="Disk Images | *.img *.iso *.dd *.raw *")
         else
-            BOOT_IMG=$(zenity --entry \
-                --title="Boot Image Path" \
-                --text="Enter full path to boot partition image:")
+            BOOT_IMG=$(prompt_path_in_terminal \
+                "Boot Image Path" \
+                "Enter the full path to the boot partition image." \
+                "$HOME/")
         fi
 
         if [ -z "$BOOT_IMG" ] || [ ! -f "$BOOT_IMG" ]; then
@@ -325,9 +428,10 @@ elif [ "$BOOT_MODE" = "image" ]; then
                 --title="Select Root Partition Image" \
                 --file-filter="Disk Images | *.img *.iso *.dd *.raw *")
         else
-            ROOT_IMG=$(zenity --entry \
-                --title="Root Image Path" \
-                --text="Enter full path to root partition image:")
+            ROOT_IMG=$(prompt_path_in_terminal \
+                "Root Image Path" \
+                "Enter the full path to the root partition image." \
+                "$HOME/")
         fi
 
         if [ -z "$ROOT_IMG" ] || [ ! -f "$ROOT_IMG" ]; then
